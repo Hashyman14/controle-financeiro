@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Controle Financeiro</title>
-<!-- SDK Oficial do Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#6b7380;--bd:#e3e6ea;--ac:#2f6fed;--ok:#14915b;--no:#d6403a;
@@ -58,8 +57,6 @@ td.v{text-align:right;font-weight:600}
 .al.ok{border-color:var(--ok)}
 .bar.r{grid-template-columns:110px 1fr 140px}
 [hidden]{display:none!important}
-
-/* Estilos da Tela de Login */
 #auth-container{max-width:380px;margin:60px auto;padding:24px}
 #auth-container input{width:100%;margin-bottom:10px}
 .auth-btns{display:flex;gap:10px}
@@ -68,7 +65,6 @@ td.v{text-align:right;font-weight:600}
 </head>
 <body>
 
-<!-- 1. TELA DE LOGIN -->
 <div id="auth-container" class="card">
   <h2>Acessar Painel</h2>
   <label>E-mail<input type="email" id="email" placeholder="seu@email.com"></label>
@@ -80,7 +76,6 @@ td.v{text-align:right;font-weight:600}
   <div id="auth-st" style="margin-top:10px;font-size:12px;color:var(--no)"></div>
 </div>
 
-<!-- 2. PAINEL FINANCEIRO -->
 <main id="app-container" hidden>
 <div class="top">
   <h1>💰 Controle Financeiro</h1>
@@ -139,128 +134,96 @@ td.v{text-align:right;font-weight:600}
 </main>
 
 <script>
-// ---------- CONFIGURAÇÃO DO SUPABASE ----------
-// Substitua com as suas credenciais obtidas no Supabase (Project Settings > API)
-const SUPABASE_URL = 'sb_publishable_syfZB2IaODrbJqGpcUSkHQ_vhPh5Rbe';
-const SUPABASE_KEY = 'https://gppnwsabylvsjgronakr.supabase.co/rest/v1/';
+const $=id=>document.getElementById(id);
 
+// ---------- SUPABASE ----------
+const SUPABASE_URL = 'https://gppnwsabylvsjgronakr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_syfZB2IaODrbJqGpcUSkHQ_vhPh5Rbe';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ---------- AUTENTICAÇÃO ----------
-async function criarConta() {
-  const email = $("email").value;
-  const password = $("password").value;
-  $("auth-st").textContent = "";
-  
-  const { data, error } = await _supabase.auth.signUp({ email, password });
-  if (error) {
-    $("auth-st").textContent = error.message;
-  } else {
-    alert("Conta criada com sucesso!");
-    verificarUsuario();
-  }
-}
-
-async function fazerLogin() {
-  const email = $("email").value;
-  const password = $("password").value;
-  $("auth-st").textContent = "";
-
-  const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    $("auth-st").textContent = "Erro ao entrar: " + error.message;
-  } else {
-    verificarUsuario();
-  }
-}
-
-async function fazerLogout() {
-  await _supabase.auth.signOut();
-  verificarUsuario();
-}
-
-async function verificarUsuario() {
-  const { data: { user } } = await _supabase.auth.getUser();
-  if (user) {
-    $("auth-container").hidden = true;
-    $("app-container").hidden = false;
-    carregarDadosSupabase();
-  } else {
-    $("auth-container").hidden = false;
-    $("app-container").hidden = true;
-    itens = [];
-  }
-}
-
-// ---------- BANCO DE DADOS (SUPABASE) ----------
-async function carregarDadosSupabase() {
-  $("st").textContent = "Carregando dados...";
-  const { data, error } = await _supabase
-    .from('lancamentos')
-    .select('*')
-    .order('data', { ascending: false });
-
-  if (error) {
-    $("st").textContent = "Erro ao carregar dados: " + error.message;
-  } else {
-    itens = data || [];
-    $("st").textContent = "Conectado ao Supabase.";
-    render();
-  }
-}
-
-$("f").onsubmit = async e => {
-  e.preventDefault();
-  const valor = parseFloat($("valor").value);
-  if (!(valor > 0)) return;
-  
-  const novoItem = {
-    tipo,
-    valor,
-    categoria: $("cat").value,
-    data: $("data").value,
-    descricao: $("desc").value.trim() || null
-  };
-
-  $("st").textContent = "Salvando...";
-  const { data, error } = await _supabase.from('lancamentos').insert([novoItem]).select();
-
-  if (error) {
-    $("st").textContent = "Erro ao salvar: " + error.message;
-  } else {
-    if(data && data[0]) itens.unshift(data[0]);
-    $("st").textContent = "Salvo com sucesso!";
-    render();
-    $("valor").value = "";
-    $("desc").value = "";
-    $("valor").focus();
-  }
-};
-
-async function remover(id) {
-  $("st").textContent = "Excluindo...";
-  const { error } = await _supabase.from('lancamentos').delete().eq('id', id);
-
-  if (error) {
-    $("st").textContent = "Erro ao excluir: " + error.message;
-  } else {
-    itens = itens.filter(i => i.id !== id);
-    $("st").textContent = "Item excluído.";
-    render();
-  }
-}
-
-// ---------- LÓGICA DO PAINEL ----------
+// ---------- ESTADO ----------
 const CATS={
   despesa:["Moradia","Alimentação","Transporte","Saúde","Educação","Lazer","Contas","Compras","Outros"],
   receita:["Salário","Extra","Investimentos","Outros"]
 };
-const $=id=>document.getElementById(id);
 const brl=n=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const hoje=new Date();
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 let tipo="despesa", itens=[];
 
+// ---------- AUTENTICAÇÃO ----------
+async function criarConta(){
+  const email=$("email").value, password=$("password").value;
+  $("auth-st").textContent="";
+  const {data,error}=await _supabase.auth.signUp({email,password});
+  if(error){$("auth-st").textContent=error.message}
+  else if(data.session){verificarUsuario()}
+  else{alert("Conta criada! Confirme seu e-mail para poder entrar.")}
+}
+async function fazerLogin(){
+  const email=$("email").value, password=$("password").value;
+  $("auth-st").textContent="";
+  const {error}=await _supabase.auth.signInWithPassword({email,password});
+  if(error){$("auth-st").textContent="Erro ao entrar: "+error.message}
+  else{verificarUsuario()}
+}
+async function fazerLogout(){
+  await _supabase.auth.signOut();
+  verificarUsuario();
+}
+async function verificarUsuario(){
+  const {data:{user}}=await _supabase.auth.getUser();
+  if(user){
+    $("auth-container").hidden=true;
+    $("app-container").hidden=false;
+    carregarDadosSupabase();
+  }else{
+    $("auth-container").hidden=false;
+    $("app-container").hidden=true;
+    itens=[];
+  }
+}
+
+// ---------- BANCO DE DADOS ----------
+async function carregarDadosSupabase(){
+  $("st").textContent="Carregando dados...";
+  const {data,error}=await _supabase.from('lancamentos').select('*').order('data',{ascending:false});
+  if(error){$("st").textContent="Erro ao carregar dados: "+error.message}
+  else{
+    itens=(data||[]).map(i=>({...i,valor:Number(i.valor)}));
+    $("st").textContent="Dados salvos na sua conta.";
+    render();
+  }
+}
+
+$("f").onsubmit=async e=>{
+  e.preventDefault();
+  const valor=parseFloat($("valor").value);
+  if(!(valor>0))return;
+  const novoItem={tipo,valor,categoria:$("cat").value,data:$("data").value,descricao:$("desc").value.trim()||null};
+  $("st").textContent="Salvando...";
+  const {data,error}=await _supabase.from('lancamentos').insert([novoItem]).select();
+  if(error){$("st").textContent="Erro ao salvar: "+error.message}
+  else{
+    if(data&&data[0])itens.unshift({...data[0],valor:Number(data[0].valor)});
+    $("st").textContent="Salvo com sucesso!";
+    render();
+    $("valor").value="";$("desc").value="";$("valor").focus();
+  }
+};
+
+async function remover(id){
+  $("st").textContent="Excluindo...";
+  const {error}=await _supabase.from('lancamentos').delete().eq('id',id);
+  if(error){$("st").textContent="Erro ao excluir: "+error.message}
+  else{
+    itens=itens.filter(i=>i.id!==id);
+    $("st").textContent="Item excluído.";
+    render();
+  }
+}
+
+// ---------- INTERFACE ----------
 $("data").value=iso(hoje);
 $("mes").value=iso(hoje).slice(0,7);
 
@@ -276,7 +239,12 @@ document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
 });
 $("mes").onchange=render;
 
-/* ---------- TELA ---------- */
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===b));
+  $("p1").hidden=b.dataset.p!=="p1";
+  $("p2").hidden=b.dataset.p!=="p2";
+});
+
 function render(){
   const mes=$("mes").value;
   const v=itens.filter(i=>!mes||i.data.startsWith(mes)).sort((a,b)=>b.data.localeCompare(a.data));
@@ -299,7 +267,8 @@ function render(){
     r.append(a,w,p);cats.appendChild(r);
   });
 
-  indicadores();const tb=$("lista");tb.innerHTML="";
+  indicadores();
+  const tb=$("lista");tb.innerHTML="";
   if(!v.length){tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum lançamento no período.</td></tr>'}
   v.forEach(i=>{
     const tr=document.createElement("tr");
@@ -308,15 +277,17 @@ function render(){
     const tv=document.createElement("td");tv.className="v "+(i.tipo==="receita"?"ok":"no");
     tv.textContent=(i.tipo==="receita"?"+ ":"− ")+brl(i.valor);tr.appendChild(tv);
     const tx=document.createElement("td");const b=document.createElement("button");
-    b.className="del";b.textContent="🗑 Excluir";b.title="Excluir lançamento";let armado=false,tm;b.onclick=()=>{if(!armado){armado=true;b.textContent="Confirmar?";b.style.background="var(--no)";b.style.color="#fff";tm=setTimeout(()=>{armado=false;b.textContent="🗑 Excluir";b.style.background="";b.style.color=""},3000)}else{clearTimeout(tm);remover(i.id)}};
+    b.className="del";b.textContent="🗑 Excluir";b.title="Excluir lançamento";
+    let armado=false,tm;
+    b.onclick=()=>{
+      if(!armado){
+        armado=true;b.textContent="Confirmar?";b.style.background="var(--no)";b.style.color="#fff";
+        tm=setTimeout(()=>{armado=false;b.textContent="🗑 Excluir";b.style.background="";b.style.color=""},3000);
+      }else{clearTimeout(tm);remover(i.id)}
+    };
     tx.appendChild(b);tr.appendChild(tx);tb.appendChild(tr);
   });
 }
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===b));
-  $("p1").hidden=b.dataset.p!=="p1";
-  $("p2").hidden=b.dataset.p!=="p2";
-});
 
 function agrupa(l){const o={};l.forEach(i=>o[i.categoria]=(o[i.categoria]||0)+i.valor);return Object.entries(o).sort((a,b)=>b[1]-a[1])}
 const pc=n=>Math.round(n*100)+'%';
@@ -392,7 +363,6 @@ function indicadores(){
   box.appendChild(c3);
 }
 
-// Inicializa checando se já há usuário autenticado
 verificarUsuario();
 </script>
 </body>
