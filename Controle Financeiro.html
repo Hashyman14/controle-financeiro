@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Controle Financeiro</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#6b7380;--bd:#e3e6ea;--ac:#2f6fed;--ok:#14915b;--no:#d6403a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161a;--card:#1d2026;--tx:#eceef1;--mut:#9aa2ae;--bd:#2d313a;--ac:#6b9bff;--ok:#3ccf91;--no:#ff7d77}}
+:root[data-theme="dark"]{--bg:#14161a;--card:#1d2026;--tx:#eceef1;--mut:#9aa2ae;--bd:#2d313a;--ac:#6b9bff;--ok:#3ccf91;--no:#ff7d77}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 12px}
+h2{font-size:14px;margin:0 0 10px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.top h1{margin:0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:520px){.grid3{grid-template-columns:1fr}}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.kpi small{color:var(--mut)}
+.kpi b{display:block;font-size:22px;margin-top:2px}
+.ok{color:var(--ok)}.no{color:var(--no)}
+form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(max-width:520px){form{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut)}
+input,select,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px}
+.full{grid-column:1/-1}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;cursor:pointer}
+.seg button.on[data-t="receita"]{background:var(--ok);color:#fff;border-color:var(--ok)}
+.seg button.on[data-t="despesa"]{background:var(--no);color:#fff;border-color:var(--no)}
+.add{background:var(--ac);color:#fff;border-color:var(--ac);cursor:pointer;font-weight:600}
+.bar{display:grid;grid-template-columns:110px 1fr 90px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+.bar i{display:block;height:10px;background:var(--no);border-radius:5px;opacity:.85}
+.bar span:last-child{text-align:right}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+td.v{text-align:right;font-weight:600}
+.del{background:none;border:1px solid var(--no);color:var(--no);cursor:pointer;padding:4px 10px;border-radius:8px;font-size:13px}
+.empty{color:var(--mut);padding:8px 0}
+#st{font-size:12px;color:var(--mut)}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{flex:1;cursor:pointer;font-weight:600}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.warn{color:#e0a000}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kg .kpi{background:var(--bg)}
+.al{padding:10px 12px;border-radius:8px;border-left:4px solid var(--bd);margin:6px 0;background:var(--bg);white-space:normal}
+.al.crit{border-color:var(--no)}
+.al.warn{border-color:#e0a000;color:var(--tx)}
+.al.ok{border-color:var(--ok)}
+.bar.r{grid-template-columns:110px 1fr 140px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+  <h1>💰 Controle Financeiro</h1>
+  <label style="flex-direction:row;align-items:center;gap:8px">Mês
+    <input type="month" id="mes">
+  </label>
+</div>
+
+<div class="grid3" style="margin-bottom:14px">
+  <div class="kpi"><small>Receitas</small><b class="ok" id="kr">R$ 0,00</b></div>
+  <div class="kpi"><small>Despesas</small><b class="no" id="kd">R$ 0,00</b></div>
+  <div class="kpi"><small>Saldo</small><b id="ks">R$ 0,00</b></div>
+</div>
+
+<div class="tabs">
+  <button type="button" class="tab on" data-p="p1">📋 Lançamentos</button>
+  <button type="button" class="tab" data-p="p2">📊 Indicadores</button>
+</div>
+<div id="p1">
+<div class="card">
+  <h2>Novo lançamento</h2>
+  <form id="f">
+    <div class="seg full">
+      <button type="button" data-t="despesa" class="on">Despesa</button>
+      <button type="button" data-t="receita">Receita</button>
+    </div>
+    <label>Valor (R$)<input id="valor" type="number" step="0.01" min="0.01" required inputmode="decimal"></label>
+    <label>Data<input id="data" type="date" required></label>
+    <label>Tipo / categoria<select id="cat"></select></label>
+    <label>Descrição (opcional)<input id="desc" maxlength="80"></label>
+    <button class="add full" type="submit">Adicionar</button>
+  </form>
+  <div id="st"></div>
+</div>
+
+<div class="card">
+  <h2>Despesas por categoria</h2>
+  <div id="cats"></div>
+</div>
+
+<div class="card">
+  <h2>Lançamentos</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th style="text-align:right">Valor</th><th>Ação</th></tr></thead>
+    <tbody id="lista"></tbody>
+  </table></div>
+</div>
+</div>
+
+<div id="p2" hidden>
+  <div id="ind"></div>
+</div>
+</main>
+
+<script>
+const CATS={
+  despesa:["Moradia","Alimentação","Transporte","Saúde","Educação","Lazer","Contas","Compras","Outros"],
+  receita:["Salário","Extra","Investimentos","Outros"]
+};
+const $=id=>document.getElementById(id);
+const brl=n=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const hoje=new Date();
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+let tipo="despesa", itens=[], col=null;
+
+$("data").value=iso(hoje);
+$("mes").value=iso(hoje).slice(0,7);
+
+function fillCats(){
+  const s=$("cat"); s.innerHTML="";
+  CATS[tipo].forEach(c=>{const o=document.createElement("option");o.textContent=c;s.appendChild(o)});
+}
+fillCats();
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
+  tipo=b.dataset.t;
+  document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x===b));
+  fillCats();
+});
+$("mes").onchange=render;
+
+/* ---------- armazenamento ---------- */
+const LS="finpessoal_v1";
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LS)||"[]")}catch(e){return []}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify(itens))}catch(e){}}
+
+async function init(){
+  try{
+    const db=await claude.use("db"), user=await claude.use("user");
+    if(db&&user){
+      const uid=await user.id();
+      col=db.collection("data/users/"+uid+"/lancamentos");
+      col.orderBy("data","desc").onSnapshot(snap=>{
+        itens=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+        render();
+      },()=>{col=null;fallback()});
+      $("st").textContent="Dados salvos na sua conta (privados).";
+      return;
+    }
+  }catch(e){}
+  fallback();
+}
+function fallback(){
+  itens=lsLoad(); render();
+  $("st").textContent="Dados salvos apenas neste navegador.";
+}
+
+$("f").onsubmit=async e=>{
+  e.preventDefault();
+  const valor=parseFloat($("valor").value);
+  if(!(valor>0))return;
+  const l={tipo,valor,categoria:$("cat").value,data:$("data").value,desc:$("desc").value.trim()};
+  if(col){
+    try{await col.add(l)}catch(err){$("st").textContent="Erro ao salvar. Tente novamente."}
+  }else{
+    l.id=String(Date.now());itens.push(l);lsSave();render();
+  }
+  $("valor").value="";$("desc").value="";$("valor").focus();
+};
+
+async function remover(id){
+  if(col){try{await col.doc(id).delete()}catch(e){$("st").textContent="Erro ao excluir. Tente novamente."}}
+  else{itens=itens.filter(i=>i.id!==id);lsSave();render()}
+}
+
+/* ---------- tela ---------- */
+function render(){
+  const mes=$("mes").value;
+  const v=itens.filter(i=>!mes||i.data.startsWith(mes)).sort((a,b)=>b.data.localeCompare(a.data));
+  const rec=v.filter(i=>i.tipo==="receita").reduce((s,i)=>s+i.valor,0);
+  const des=v.filter(i=>i.tipo==="despesa").reduce((s,i)=>s+i.valor,0);
+  $("kr").textContent=brl(rec);$("kd").textContent=brl(des);
+  const sal=rec-des,ks=$("ks");
+  ks.textContent=brl(sal);ks.className=sal>=0?"ok":"no";
+
+  const por={};
+  v.filter(i=>i.tipo==="despesa").forEach(i=>por[i.categoria]=(por[i.categoria]||0)+i.valor);
+  const cats=$("cats");cats.innerHTML="";
+  const ent=Object.entries(por).sort((a,b)=>b[1]-a[1]);
+  if(!ent.length){cats.innerHTML='<div class="empty">Sem despesas no período.</div>'}
+  ent.forEach(([c,t])=>{
+    const r=document.createElement("div");r.className="bar";
+    const a=document.createElement("span");a.textContent=c;
+    const w=document.createElement("div");const i=document.createElement("i");i.style.width=(t/ent[0][1]*100)+"%";w.appendChild(i);
+    const p=document.createElement("span");p.textContent=brl(t);
+    r.append(a,w,p);cats.appendChild(r);
+  });
+
+  indicadores();const tb=$("lista");tb.innerHTML="";
+  if(!v.length){tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum lançamento no período.</td></tr>'}
+  v.forEach(i=>{
+    const tr=document.createElement("tr");
+    const d=i.data.split("-").reverse().join("/");
+    [d,i.categoria,i.desc||"—"].forEach(t=>{const td=document.createElement("td");td.textContent=t;tr.appendChild(td)});
+    const tv=document.createElement("td");tv.className="v "+(i.tipo==="receita"?"ok":"no");
+    tv.textContent=(i.tipo==="receita"?"+ ":"− ")+brl(i.valor);tr.appendChild(tv);
+    const tx=document.createElement("td");const b=document.createElement("button");
+    b.className="del";b.textContent="🗑 Excluir";b.title="Excluir lançamento";let armado=false,tm;b.onclick=()=>{if(!armado){armado=true;b.textContent="Confirmar?";b.style.background="var(--no)";b.style.color="#fff";tm=setTimeout(()=>{armado=false;b.textContent="🗑 Excluir";b.style.background="";b.style.color=""},3000)}else{clearTimeout(tm);remover(i.id)}};
+    tx.appendChild(b);tr.appendChild(tx);tb.appendChild(tr);
+  });
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===b));
+  $("p1").hidden=b.dataset.p!=="p1";
+  $("p2").hidden=b.dataset.p!=="p2";
+});
+
+function agrupa(l){const o={};l.forEach(i=>o[i.categoria]=(o[i.categoria]||0)+i.valor);return Object.entries(o).sort((a,b)=>b[1]-a[1])}
+const pc=n=>Math.round(n*100)+'%';
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function indicadores(){
+  const box=$('ind');box.innerHTML='';
+  const mes=$('mes').value;
+  const v=itens.filter(i=>!mes||i.data.startsWith(mes));
+  if(!v.length){box.appendChild(el('div','card empty','Sem lançamentos no período selecionado.'));return}
+  const desp=v.filter(i=>i.tipo==='despesa'),rec=v.filter(i=>i.tipo==='receita');
+  const tD=desp.reduce((s,i)=>s+i.valor,0),tR=rec.reduce((s,i)=>s+i.valor,0);
+  const por=agrupa(desp);
+  const parcial=!!mes&&iso(hoje).slice(0,7)===mes;
+  let ant=[];
+  if(mes){const a=mes.split('-').map(Number);const p=iso(new Date(a[0],a[1]-2,1)).slice(0,7);ant=itens.filter(i=>i.tipo==='despesa'&&i.data.startsWith(p))}
+  const tA=ant.reduce((s,i)=>s+i.valor,0);
+  const mx=desp.slice().sort((a,b)=>b.valor-a.valor)[0];
+
+  const al=[];const add=(n,t)=>al.push({n:n,t:t});
+  if(tR===0)add('crit','Nenhuma receita lançada neste período, mas há '+brl(tD)+' em despesas.');
+  else{
+    const p=tD/tR;
+    if(tD>tR)add('crit','Você gastou '+brl(tD-tR)+' a mais do que ganhou (despesas = '+pc(p)+' da receita).');
+    else if(p>=0.9)add('crit','Despesas consomem '+pc(p)+' da receita: quase nada sobra.');
+    else if(p>=0.7)add('warn','Despesas consomem '+pc(p)+' da receita. Pouca margem para imprevistos.');
+    else add('ok','Despesas em '+pc(p)+' da receita: você guardou '+pc(1-p)+' do que ganhou.');
+  }
+  if(por.length){
+    const sh=por[0][1]/tD;
+    if(sh>=0.5)add('crit',por[0][0]+' concentra '+pc(sh)+' de tudo que você gastou ('+brl(por[0][1])+').');
+    else if(sh>=0.35)add('warn',por[0][0]+' é a categoria que mais pesa: '+pc(sh)+' das despesas ('+brl(por[0][1])+').');
+  }
+  if(mx&&tR>0&&mx.valor>=0.25*tR)add('warn','Uma única despesa ('+(mx.desc||mx.categoria)+', '+brl(mx.valor)+') equivale a '+pc(mx.valor/tR)+' da receita.');
+  if(tA>0){
+    const d=(tD-tA)/tA;
+    if(d>=0.2)add('warn','Suas despesas subiram '+pc(d)+' em relação ao mês anterior ('+brl(tA)+' → '+brl(tD)+').');
+    else if(d<=-0.1&&!parcial)add('ok','Suas despesas caíram '+pc(-d)+' em relação ao mês anterior.');
+    const pa=Object.fromEntries(agrupa(ant));
+    por.forEach(e=>{const a=pa[e[0]]||0;if(a>0&&e[1]-a>=50&&(e[1]-a)/a>=0.3)add('warn',e[0]+' subiu '+pc((e[1]-a)/a)+' vs. mês anterior ('+brl(a)+' → '+brl(e[1])+').')});
+  }
+  const rk={crit:0,warn:1,ok:2};
+  al.sort((a,b)=>rk[a.n]-rk[b.n]);
+  const c1=el('div','card');c1.appendChild(el('h2',null,'Pontos de atenção'));
+  al.forEach(a=>c1.appendChild(el('div','al '+a.n,(a.n==='crit'?'🔴 ':a.n==='warn'?'🟠 ':'🟢 ')+a.t)));
+  box.appendChild(c1);
+
+  const k=[];
+  k.push(['Maior gasto',por.length?por[0][0]:'—',por.length?brl(por[0][1])+' · '+pc(por[0][1]/tD)+' das despesas':'Sem despesas','no']);
+  if(tR>0){
+    const p=tD/tR,s=(tR-tD)/tR;
+    k.push(['Renda comprometida',pc(p),'das receitas viram despesas',p>=0.9?'no':p>=0.7?'warn':'ok']);
+    k.push(['Taxa de poupança',pc(s),s>=0.2?'Meta de 20% atingida':'Meta comum: 20%',s>=0.2?'ok':s>=0.1?'warn':'no']);
+  }
+  if(mes){
+    const dias=new Date(+mes.slice(0,4),+mes.slice(5,7),0).getDate();
+    const dec=parcial?hoje.getDate():dias;
+    k.push(['Média diária de gastos',brl(tD/dec),parcial&&dec<dias?'Projeção do mês: '+brl(tD/dec*dias):'Total: '+brl(tD)]);
+  }
+  if(mx)k.push(['Maior despesa única',brl(mx.valor),(mx.desc||mx.categoria)+' · '+mx.data.split('-').reverse().join('/')]);
+  if(tA>0){const d=(tD-tA)/tA;k.push(['Vs. mês anterior',(d>0?'+':'')+Math.round(d*100)+'%','Anterior: '+brl(tA),d>=0.2?'no':d>0?'warn':'ok'])}
+  const c2=el('div','card');c2.appendChild(el('h2',null,'Indicadores do período'));
+  const g=el('div','kg');
+  k.forEach(x=>{const d=el('div','kpi');d.appendChild(el('small',null,x[0]));d.appendChild(el('b',x[3]||'',x[1]));d.appendChild(el('small',null,x[2]));g.appendChild(d)});
+  c2.appendChild(g);box.appendChild(c2);
+
+  const c3=el('div','card');c3.appendChild(el('h2',null,'Onde você mais gastou'));
+  por.slice(0,6).forEach(e=>{
+    const r=el('div','bar r');r.appendChild(el('span',null,e[0]));
+    const w=el('div');const i=el('i');i.style.width=(e[1]/por[0][1]*100)+'%';w.appendChild(i);r.appendChild(w);
+    r.appendChild(el('span',null,brl(e[1])+' · '+pc(e[1]/tD)));c3.appendChild(r);
+  });
+  if(!por.length)c3.appendChild(el('div','empty','Sem despesas no período.'));
+  box.appendChild(c3);
+}
+
+render();
+init();
+</script>
+</body>
+</html>
